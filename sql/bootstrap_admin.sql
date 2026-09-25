@@ -15,7 +15,7 @@
 
 insert into admins (username, password_hash, nama)
 values (
-  'admin',
-  crypt('admin123', gen_salt('bf')),
+  'Admin',
+  crypt('Admin123', gen_salt('bf')),
   'Admin Sekolah'
 );
