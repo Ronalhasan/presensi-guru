@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cekAbsenDatang, cekAbsenPulang, JamKerja, JAM_KERJA_DEFAULT } from '@/lib/attendance';
+import { cekAbsenDatang, cekAbsenPulang, JamKerja, JAM_KERJA_DEFAULT, tanggalDalamZonaSekolah } from '@/lib/attendance';
 import { ambilSesiDariCookie } from '@/lib/session-server';
 
 const supabase = createClient(
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: hasilCek.alasan }, { status: 422 });
   }
 
-  const tanggal = sekarang.toISOString().slice(0, 10);
+  const tanggal = tanggalDalamZonaSekolah(sekarang);
 
   // Unggah foto ke Supabase Storage
   const namaFile = `${guruIdTarget}/${tanggal}-${jenis}-${kategori}-${Date.now()}.jpg`;
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function ambilJamKerjaAktif(): Promise<JamKerja | null> {
-  const hariIni = new Date().toISOString().slice(0, 10);
+  const hariIni = tanggalDalamZonaSekolah();
   const { data } = await supabase
     .from('jam_kerja')
     .select('*')

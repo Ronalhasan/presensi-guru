@@ -23,6 +23,38 @@ function keMenit(hhmm: string): number {
   return h * 60 + m;
 }
 
+// -----------------------------------------------------------
+// Zona waktu sekolah
+// -----------------------------------------------------------
+// Server (Vercel) berjalan dengan jam UTC, sedangkan sekolah berada di
+// WITA (UTC+8). Pakai Intl.DateTimeFormat dengan timeZone eksplisit agar
+// perhitungan jam & tanggal SELALU benar apa pun timezone server-nya
+// (tidak bergantung pada asumsi "server = UTC").
+export const ZONA_SEKOLAH = 'Asia/Makassar'; // WITA, UTC+8
+
+/** Menit-dalam-hari (0-1439) dari sebuah waktu, dibaca dalam zona sekolah. */
+function menitDalamZonaSekolah(d: Date): number {
+  const bagian = new Intl.DateTimeFormat('en-GB', {
+    timeZone: ZONA_SEKOLAH,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+  const jam = Number(bagian.find((p) => p.type === 'hour')?.value ?? '0');
+  const menit = Number(bagian.find((p) => p.type === 'minute')?.value ?? '0');
+  return jam * 60 + menit;
+}
+
+/** Tanggal kalender (YYYY-MM-DD) dari sebuah waktu, dibaca dalam zona sekolah. */
+export function tanggalDalamZonaSekolah(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_SEKOLAH,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d); // locale en-CA -> format YYYY-MM-DD
+}
+
 export type HasilCekAbsen =
   | { boleh: false; alasan: string }
   | { boleh: true; terlambatMenit: number };
@@ -41,7 +73,7 @@ export type HasilCekAbsen =
  *   penghitungan keterlambatan mengikuti jam_selesai absen datang.
  */
 export function cekAbsenDatang(jamSekarang: Date, jk: JamKerja = JAM_KERJA_DEFAULT): HasilCekAbsen {
-  const menitSekarang = jamSekarang.getHours() * 60 + jamSekarang.getMinutes();
+  const menitSekarang = menitDalamZonaSekolah(jamSekarang);
   const mulai = keMenit(jk.datang_mulai);
   const tepat = keMenit(jk.datang_tepat_hingga);
   const selesai = keMenit(jk.datang_selesai);
@@ -64,7 +96,7 @@ export function cekAbsenDatang(jamSekarang: Date, jk: JamKerja = JAM_KERJA_DEFAU
  * Tidak ada konsep "terlambat" untuk absen pulang, hanya boleh/tidak.
  */
 export function cekAbsenPulang(jamSekarang: Date, jk: JamKerja = JAM_KERJA_DEFAULT): HasilCekAbsen {
-  const menitSekarang = jamSekarang.getHours() * 60 + jamSekarang.getMinutes();
+  const menitSekarang = menitDalamZonaSekolah(jamSekarang);
   const mulai = keMenit(jk.pulang_mulai);
   const selesai = keMenit(jk.pulang_selesai);
 
