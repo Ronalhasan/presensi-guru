@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
+import { ambilSesiDariCookie } from '@/lib/session-server';
 
-export default function RootPage() {
-  // Sementara langsung ke /beranda. Setelah halaman login dibuat,
-  // ini diganti jadi: cek sesi -> redirect ke /login atau /beranda.
-  redirect('/beranda');
+export default async function RootPage() {
+  const sesi = await ambilSesiDariCookie();
+  if (!sesi) redirect('/login');
+  redirect(sesi.role === 'admin' ? '/admin/dashboard' : '/beranda');
 }

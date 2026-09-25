@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { supabaseBrowser, GuruSesi } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
-type StatusHariIni = {
-  datang: { jam: string; status: 'menunggu' | 'valid' | 'ditolak' } | null;
-  pulang: { jam: string; status: 'menunggu' | 'valid' | 'ditolak' } | null;
+type ProfilGuru = {
+  id: string;
+  nama_lengkap: string;
+  username: string;
+  foto_profil_url: string | null;
+  nip_nuptk: string | null;
 };
+
+type StatusRingkas = { jam_tercatat: string; status_validasi: 'menunggu' | 'valid' | 'ditolak' } | null;
 
 const MENU = [
   { href: '/absen', label: 'Absen', icon: '📷', hint: 'Datang / pulang' },
@@ -17,51 +22,52 @@ const MENU = [
 ];
 
 export default function BerandaPage() {
-  const [guru, setGuru] = useState<GuruSesi | null>(null);
-  const [status, setStatus] = useState<StatusHariIni>({ datang: null, pulang: null });
+  const router = useRouter();
+  const [guru, setGuru] = useState<ProfilGuru | null>(null);
+  const [datang, setDatang] = useState<StatusRingkas>(null);
+  const [pulang, setPulang] = useState<StatusRingkas>(null);
   const [memuat, setMemuat] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function muat() {
-      const { data: sesi } = await supabaseBrowser.auth.getSession();
-      const userId = sesi.session?.user.id;
-      if (!userId) {
+      try {
+        const res = await fetch('/api/beranda');
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? 'Gagal memuat data.');
+          return;
+        }
+        setGuru(data.guru);
+        setDatang(data.datang);
+        setPulang(data.pulang);
+      } catch {
+        setError('Koneksi bermasalah. Coba muat ulang halaman.');
+      } finally {
         setMemuat(false);
-        return;
       }
-
-      const { data: profilGuru } = await supabaseBrowser
-        .from('guru')
-        .select('id, nama_lengkap, username, foto_profil_url, nip_nuptk')
-        .eq('id', userId)
-        .single();
-      setGuru(profilGuru);
-
-      const hariIni = new Date().toISOString().slice(0, 10);
-      const { data: presensiHariIni } = await supabaseBrowser
-        .from('presensi')
-        .select('jenis, jam_tercatat, status_validasi')
-        .eq('guru_id', userId)
-        .eq('tanggal', hariIni)
-        .eq('kategori', 'reguler');
-
-      const datang = presensiHariIni?.find((p) => p.jenis === 'datang');
-      const pulang = presensiHariIni?.find((p) => p.jenis === 'pulang');
-      setStatus({
-        datang: datang
-          ? { jam: formatJam(datang.jam_tercatat), status: datang.status_validasi }
-          : null,
-        pulang: pulang
-          ? { jam: formatJam(pulang.jam_tercatat), status: pulang.status_validasi }
-          : null,
-      });
-      setMemuat(false);
     }
     muat();
-  }, []);
+  }, [router]);
+
+  async function keluar() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <div className="px-5 pt-6">
+      <div className="mb-3 flex justify-end">
+        <button onClick={keluar} className="text-xs text-white/40 hover:text-white/70">
+          Keluar
+        </button>
+      </div>
+
       {/* Kartu profil ungu */}
       <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-purple-700 to-fuchsia-800 p-5 shadow-lg shadow-purple-900/30">
         <div className="flex items-center gap-4">
@@ -82,10 +88,14 @@ export default function BerandaPage() {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <StatusPill label="Datang" data={status.datang} />
-          <StatusPill label="Pulang" data={status.pulang} />
+          <StatusPill label="Datang" data={datang} />
+          <StatusPill label="Pulang" data={pulang} />
         </div>
       </div>
+
+      {error && (
+        <div className="mt-4 rounded-xl bg-red-500/15 px-3 py-2 text-sm text-red-300">{error}</div>
+      )}
 
       {/* Grid menu ikon */}
       <div className="mt-6 grid grid-cols-2 gap-3">
@@ -107,14 +117,14 @@ export default function BerandaPage() {
   );
 }
 
-function StatusPill({ label, data }: { label: string; data: StatusHariIni['datang'] }) {
+function StatusPill({ label, data }: { label: string; data: StatusRingkas }) {
   const teks = !data
     ? 'Belum absen'
-    : data.status === 'menunggu'
-      ? `${data.jam} · Menunggu`
-      : data.status === 'valid'
-        ? `${data.jam} · Valid`
-        : `${data.jam} · Ditolak`;
+    : data.status_validasi === 'menunggu'
+      ? `${formatJam(data.jam_tercatat)} · Menunggu`
+      : data.status_validasi === 'valid'
+        ? `${formatJam(data.jam_tercatat)} · Valid`
+        : `${formatJam(data.jam_tercatat)} · Ditolak`;
 
   return (
     <div className="rounded-xl bg-black/20 px-3 py-2">

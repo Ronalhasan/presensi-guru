@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { supabaseBrowser } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 type BarisPresensi = {
   id: string;
@@ -14,29 +14,23 @@ type BarisPresensi = {
 };
 
 export default function RiwayatPage() {
+  const router = useRouter();
   const [baris, setBaris] = useState<BarisPresensi[]>([]);
   const [memuat, setMemuat] = useState(true);
 
   useEffect(() => {
     async function muat() {
-      const { data: sesi } = await supabaseBrowser.auth.getSession();
-      const userId = sesi.session?.user.id;
-      if (!userId) {
-        setMemuat(false);
+      const res = await fetch('/api/riwayat');
+      if (res.status === 401) {
+        router.push('/login');
         return;
       }
-      const { data } = await supabaseBrowser
-        .from('presensi')
-        .select('id, tanggal, jenis, kategori, jam_tercatat, status_validasi, diabsenkan_oleh_guru_id')
-        .eq('guru_id', userId)
-        .order('tanggal', { ascending: false })
-        .order('jam_tercatat', { ascending: false })
-        .limit(60);
-      setBaris(data ?? []);
+      const data = await res.json();
+      setBaris(data.data ?? []);
       setMemuat(false);
     }
     muat();
-  }, []);
+  }, [router]);
 
   const dikelompokkan = useMemo(() => {
     const map = new Map<string, BarisPresensi[]>();

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseBrowser } from '@/lib/supabaseClient';
 
 type GuruRingkas = {
   id: string;
@@ -27,17 +26,16 @@ export default function TemanPage() {
     }
     debounceRef.current = setTimeout(async () => {
       setMencari(true);
-      const { data } = await supabaseBrowser
-        .from('guru')
-        .select('id, nama_lengkap, nip_nuptk, foto_profil_url')
-        .eq('aktif', true)
-        .ilike('nama_lengkap', `%${kueri.trim()}%`)
-        .order('nama_lengkap')
-        .limit(15);
-      setHasil(data ?? []);
+      const res = await fetch(`/api/guru/cari?q=${encodeURIComponent(kueri.trim())}`);
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      const data = await res.json();
+      setHasil(data.data ?? []);
       setMencari(false);
     }, 300);
-  }, [kueri]);
+  }, [kueri, router]);
 
   function lanjutkanAbsen(jenis: 'datang' | 'pulang') {
     if (!terpilih) return;

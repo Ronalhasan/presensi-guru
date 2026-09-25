@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cekAbsenDatang, cekAbsenPulang, JamKerja, JAM_KERJA_DEFAULT } from '@/lib/attendance';
+import { ambilSesiDariCookie } from '@/lib/session-server';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -53,7 +54,11 @@ export async function POST(req: NextRequest) {
   if (errUpload) {
     return NextResponse.json({ error: 'Gagal mengunggah foto: ' + errUpload.message }, { status: 500 });
   }
-  const { data: publicUrl } = supabase.storage.from('foto-presensi').getPublicUrl(namaFile);
+  // Bucket foto-presensi bersifat PRIVATE, jadi yang disimpan adalah path
+  // di storage (bukan public URL, yang tidak akan bisa diakses). URL yang
+  // bisa dibuka dibuatkan belakangan lewat createSignedUrl() saat admin
+  // membuka dashboard validasi — lihat app/api/admin/presensi/route.ts.
+  const pathFoto = namaFile;
 
   const diabsenkanOlehOrangLain = guruIdTarget !== pengirim.id;
 
@@ -65,7 +70,7 @@ export async function POST(req: NextRequest) {
       jenis,
       kategori,
       jam_tercatat: sekarang.toISOString(),
-      foto_url: publicUrl.publicUrl,
+      foto_url: pathFoto,
       diabsenkan_oleh_guru_id: diabsenkanOlehOrangLain ? pengirim.id : null,
       status_validasi: 'menunggu',
     })
@@ -102,7 +107,8 @@ async function ambilJamKerjaAktif(): Promise<JamKerja | null> {
   return data;
 }
 
-// Placeholder: ganti dengan pengecekan sesi guru yang sesungguhnya
 async function getGuruDariSesi(_req: NextRequest): Promise<{ id: string } | null> {
-  return { id: 'placeholder-guru-id' };
+  const sesi = await ambilSesiDariCookie();
+  if (!sesi || sesi.role !== 'guru') return null;
+  return { id: sesi.sub };
 }
