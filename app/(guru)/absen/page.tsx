@@ -1,12 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type Jenis = 'datang' | 'pulang';
 type Kategori = 'reguler' | 'penugasan';
 
 export default function AbsenPage() {
+  return (
+    <Suspense fallback={<div className="px-5 pt-6 text-sm text-white/50">Memuat…</div>}>
+      <AbsenIsi />
+    </Suspense>
+  );
+}
+
+function AbsenIsi() {
   const searchParams = useSearchParams();
   const kategori: Kategori = searchParams.get('kategori') === 'penugasan' ? 'penugasan' : 'reguler';
   const guruIdTarget = searchParams.get('guru_id_target');
