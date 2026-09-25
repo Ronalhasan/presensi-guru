@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 const ITEMS = [
   { href: '/admin/dashboard', label: 'Validasi' },
   { href: '/admin/guru', label: 'Kelola Guru' },
+  { href: '/admin/rekap', label: 'Rekap' },
 ];
 
 export default function AdminNav() {

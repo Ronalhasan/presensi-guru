@@ -33,7 +33,7 @@ function keMenit(hhmm: string): number {
 export const ZONA_SEKOLAH = 'Asia/Makassar'; // WITA, UTC+8
 
 /** Menit-dalam-hari (0-1439) dari sebuah waktu, dibaca dalam zona sekolah. */
-function menitDalamZonaSekolah(d: Date): number {
+export function menitDalamZonaSekolah(d: Date): number {
   const bagian = new Intl.DateTimeFormat('en-GB', {
     timeZone: ZONA_SEKOLAH,
     hour: '2-digit',
@@ -58,6 +58,19 @@ export function tanggalDalamZonaSekolah(d: Date = new Date()): string {
 export type HasilCekAbsen =
   | { boleh: false; alasan: string }
   | { boleh: true; terlambatMenit: number };
+
+/**
+ * Menghitung berapa menit keterlambatan datang, dalam zona sekolah (WITA).
+ * Dipakai oleh cekAbsenDatang() dan oleh rekap Excel, supaya rumusnya
+ * konsisten di satu tempat saja.
+ */
+export function hitungTerlambatMenit(datangJam: Date, jk: JamKerja = JAM_KERJA_DEFAULT): number {
+  const menitDatang = menitDalamZonaSekolah(datangJam);
+  const tepat = keMenit(jk.datang_tepat_hingga);
+  const selesai = keMenit(jk.datang_selesai);
+  if (menitDatang <= tepat) return 0;
+  return Math.min(menitDatang, selesai) - tepat;
+}
 
 /**
  * Menentukan apakah absen DATANG boleh dilakukan pada jam tertentu,
