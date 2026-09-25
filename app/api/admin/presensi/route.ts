@@ -1,6 +1,6 @@
 // app/api/admin/presensi/route.ts
-// GET  ?status=menunggu|valid|ditolak  -> daftar presensi + foto (signed URL,
-//      karena bucket foto-presensi bersifat private)
+// GET  ?status=menunggu|valid|ditolak|semua  -> daftar presensi + foto (signed URL,
+//      karena bucket foto-presensi bersifat private). 'semua' = tanpa filter status.
 // PATCH { id, status: 'valid' | 'ditolak' } -> validasi oleh admin yang login
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,14 +18,21 @@ export async function GET(req: NextRequest) {
 
   const status = req.nextUrl.searchParams.get('status') ?? 'menunggu';
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('presensi')
     .select(
       'id, jenis, kategori, tanggal, jam_tercatat, foto_url, status_validasi, ' +
         'guru:guru_id(nama_lengkap), diabsenkan_oleh:diabsenkan_oleh_guru_id(nama_lengkap)'
-    )
-    .eq('status_validasi', status)
-    .order('jam_tercatat', { ascending: true });
+    );
+
+  if (status !== 'semua') {
+    query = query.eq('status_validasi', status);
+  }
+
+  // Antrean "menunggu" ditampilkan terlama dulu (FIFO, biar tidak ada yang
+  // kelewat lama nunggu); tab lain (valid/ditolak/semua) ditampilkan
+  // terbaru dulu, karena itu lebih berguna untuk riwayat.
+  const { data, error } = await query.order('jam_tercatat', { ascending: status === 'menunggu' });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
