@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ambilSesiDariCookie } from '@/lib/session-server';
-import { tanggalDalamZonaSekolah } from '@/lib/attendance';
+import { tanggalSekolah } from '@/lib/attendance';
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -26,7 +26,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Data guru tidak ditemukan.' }, { status: 404 });
   }
 
-  const hariIni = tanggalDalamZonaSekolah();
+  const hariIni = tanggalSekolah(new Date());
   const { data: presensi } = await supabase
     .from('presensi')
     .select('jenis, jam_tercatat, status_validasi')

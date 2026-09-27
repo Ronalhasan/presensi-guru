@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { createClient } from '@supabase/supabase-js';
-import { warnaHari, labelSel, WARNA_HEX, hitungTerlambatMenit } from '@/lib/attendance';
+import { warnaHari, labelSel, WARNA_HEX, menitDalamHari } from '@/lib/attendance';
 import { ambilSesiDariCookie } from '@/lib/session-server';
 
 const supabase = createClient(
@@ -19,7 +19,7 @@ function jumlahHariDiBulan(tahun: number, bulan1to12: number) {
 }
 
 export async function GET(req: NextRequest) {
-  const admin = await getAdminDariSesi();
+  const admin = await getAdminDariSesi(req);
   if (!admin) {
     return NextResponse.json({ error: 'Hanya admin yang boleh mengekspor rekap.' }, { status: 401 });
   }
@@ -81,8 +81,12 @@ export async function GET(req: NextRequest) {
     perGuru.set(p.tanggal, existing);
   }
 
-  // Aturan jam kerja dipakai langsung lewat hitungTerlambatMenit() di bawah,
-  // yang membaca jam dalam zona sekolah (WITA) — bukan jam server (UTC).
+  const tepatMenit = keMenit(jk.datang_tepat_hingga);
+  const selesaiMenit = keMenit(jk.datang_selesai);
+  function keMenit(hhmm: string) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
 
   // --- Bangun workbook ---
   const wb = new ExcelJS.Workbook();
@@ -110,7 +114,10 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const terlambatMenit = hitungTerlambatMenit(hari.datangJam, jk);
+      const menitDatang = menitDalamHari(hari.datangJam);
+      const terlambatMenit = menitDatang > tepatMenit
+        ? Math.min(menitDatang, selesaiMenit) - tepatMenit
+        : 0;
       const absenPulangValid = !!hari.pulangAda;
 
       totalTerlambatGuru += terlambatMenit;
@@ -127,7 +134,10 @@ export async function GET(req: NextRequest) {
       const cell = row.getCell(d + 1);
       if (!hari?.datangJam) continue;
 
-      const terlambatMenit = hitungTerlambatMenit(hari.datangJam, jk);
+      const menitDatang = menitDalamHari(hari.datangJam);
+      const terlambatMenit = menitDatang > tepatMenit
+        ? Math.min(menitDatang, selesaiMenit) - tepatMenit
+        : 0;
       const warna = warnaHari({ terlambatMenit, absenPulangValid: !!hari.pulangAda });
       const argb = WARNA_HEX[warna];
       if (argb) {
@@ -159,8 +169,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// Sama seperti endpoint admin lainnya: cek cookie sesi JWT dan pastikan role === 'admin'.
-async function getAdminDariSesi(): Promise<{ id: string } | null> {
+async function getAdminDariSesi(_req: NextRequest): Promise<{ id: string } | null> {
   const sesi = await ambilSesiDariCookie();
   if (!sesi || sesi.role !== 'admin') return null;
   return { id: sesi.sub };
