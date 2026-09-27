@@ -6,3 +6,25 @@ html,
 body {
   background-color: #120e19;
 }
+
+/* Kedip otomatis mata kucing di halaman login */
+@keyframes kedipKucing {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.05);
+  }
+}
+
+.mata-kucing {
+  transform-origin: center;
+  animation: kedipKucing 4.5s ease-in-out infinite;
+}
+
+.mata-kucing.mata-tertutup {
+  animation: none;
+  transform: scaleY(0.05);
+}
