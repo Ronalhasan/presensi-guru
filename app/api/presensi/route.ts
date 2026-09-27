@@ -46,6 +46,28 @@ export async function POST(req: NextRequest) {
 
   const tanggal = tanggalSekolah(sekarang);
 
+  // Tidak boleh absen PULANG kalau belum ada absen DATANG di tanggal &
+  // kategori yang sama (reguler/penugasan dihitung terpisah, jadi kalau
+  // pagi absen reguler lalu siang dapat tugas luar, keduanya tetap butuh
+  // datang masing-masing dulu).
+  if (jenis === 'pulang') {
+    const { data: absenDatang } = await supabase
+      .from('presensi')
+      .select('id')
+      .eq('guru_id', guruIdTarget)
+      .eq('tanggal', tanggal)
+      .eq('kategori', kategori)
+      .eq('jenis', 'datang')
+      .maybeSingle();
+
+    if (!absenDatang) {
+      return NextResponse.json(
+        { error: 'Belum bisa absen pulang karena belum ada absen datang untuk hari ini.' },
+        { status: 422 }
+      );
+    }
+  }
+
   // Unggah foto ke Supabase Storage
   const namaFile = `${guruIdTarget}/${tanggal}-${jenis}-${kategori}-${Date.now()}.jpg`;
   const { error: errUpload } = await supabase.storage
