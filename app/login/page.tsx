@@ -18,7 +18,7 @@ function FormLogin() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordFokus, setPasswordFokus] = useState(false);
+  const [tampilkanSandi, setTampilkanSandi] = useState(false);
   const [memproses, setMemproses] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
@@ -50,35 +50,32 @@ function FormLogin() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#120e19] px-5 py-10 text-white">
-      {/* Logo & nama yayasan, di LUAR kartu login */}
-      <div className="mb-6 flex flex-col items-center text-center">
-        {!logoError ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/logo.png"
-            alt="Logo Yayasan"
-            onError={() => setLogoError(true)}
-            className="h-16 w-16 object-contain"
-          />
-        ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 text-lg font-bold shadow-lg shadow-purple-900/40">
-            YBU
-          </div>
-        )}
-        <p className="mt-3 text-sm font-semibold tracking-wide text-white/90">
-          Yayasan Bahrul Ulum Ayatul Husna
-        </p>
-      </div>
-
       {/* Kartu login efek kaca */}
       <form
         onSubmit={submit}
         className="w-full max-w-sm rounded-3xl border border-white/15 bg-white/5 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl"
       >
-        <KucingMaskot menutupMata={passwordFokus} />
+        {/* Logo yayasan */}
+        <div className="flex justify-center">
+          {!logoError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/logo.png"
+              alt="Logo Yayasan Bahrul Ulum Ayatul Husna"
+              onError={() => setLogoError(true)}
+              className="h-20 w-20 object-contain"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 text-lg font-bold shadow-lg shadow-purple-900/40">
+              YBU
+            </div>
+          )}
+        </div>
 
-        <h1 className="mt-4 text-center text-lg font-semibold">Selamat Datang</h1>
-        <p className="mt-1 text-center text-xs leading-relaxed text-purple-200/80">
+        <h1 className="mt-4 text-center text-lg font-semibold leading-snug">
+          Selamat Datang di Yayasan Bahrul Ulum Ayatul Husna
+        </h1>
+        <p className="mt-2 text-center text-xs leading-relaxed text-purple-200/80">
           <span className="font-semibold tracking-wide">HUYULA</span>
           <br />
           Hadir Untuk Yayasan, Utamakan Loyalitas dan Amanah
@@ -97,16 +94,35 @@ function FormLogin() {
           </div>
           <div>
             <label className="text-xs text-white/60">Kata sandi</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setPasswordFokus(true)}
-              onBlur={() => setPasswordFokus(false)}
-              className="mt-1 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition-colors placeholder:text-white/30 focus:border-purple-300/70 focus:bg-white/15"
-              autoComplete="current-password"
-              required
-            />
+            <div className="relative mt-1">
+              <input
+                type={tampilkanSandi ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 pr-11 text-sm text-white outline-none backdrop-blur-md transition-colors placeholder:text-white/30 focus:border-purple-300/70 focus:bg-white/15"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setTampilkanSandi((v) => !v)}
+                tabIndex={-1}
+                aria-label={tampilkanSandi ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+              >
+                {tampilkanSandi ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 4.22-5.06M9.9 4.24A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                    <path d="M1 1l22 22" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -128,68 +144,6 @@ function FormLogin() {
           Guru dan admin memakai halaman masuk yang sama — sistem mengenali peran dari akunnya.
         </p>
       </form>
-    </div>
-  );
-}
-
-/** Maskot kucing SVG: berkedip otomatis, menutup mata penuh saat kolom kata sandi difokus. */
-function KucingMaskot({ menutupMata }: { menutupMata: boolean }) {
-  return (
-    <div className="mx-auto flex justify-center">
-      <svg width="120" height="100" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Telinga */}
-        <path d="M55 55 L35 15 L85 45 Z" fill="#a855f7" />
-        <path d="M145 55 L165 15 L115 45 Z" fill="#a855f7" />
-        <path d="M60 50 L48 25 L78 42 Z" fill="#e9d5ff" />
-        <path d="M140 50 L152 25 L122 42 Z" fill="#e9d5ff" />
-
-        {/* Kepala */}
-        <ellipse cx="100" cy="90" rx="68" ry="58" fill="url(#gradKucing)" />
-
-        {/* Pipi semu */}
-        <ellipse cx="55" cy="105" rx="12" ry="7" fill="#f0abfc" opacity="0.5" />
-        <ellipse cx="145" cy="105" rx="12" ry="7" fill="#f0abfc" opacity="0.5" />
-
-        {/* Mata kiri */}
-        <g className={`mata-kucing${menutupMata ? ' mata-tertutup' : ''}`}>
-          <ellipse cx="72" cy="85" rx="14" ry="16" fill="white" />
-          <circle cx="72" cy="87" r="7" fill="#3b0764" />
-          <circle cx="75" cy="83" r="2.2" fill="white" />
-        </g>
-
-        {/* Mata kanan */}
-        <g className={`mata-kucing${menutupMata ? ' mata-tertutup' : ''}`}>
-          <ellipse cx="128" cy="85" rx="14" ry="16" fill="white" />
-          <circle cx="128" cy="87" r="7" fill="#3b0764" />
-          <circle cx="131" cy="83" r="2.2" fill="white" />
-        </g>
-
-        {/* Garis kelopak mata saat tertutup */}
-        {menutupMata && (
-          <>
-            <path d="M58 85 Q72 92 86 85" stroke="#3b0764" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            <path d="M114 85 Q128 92 142 85" stroke="#3b0764" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          </>
-        )}
-
-        {/* Hidung & mulut */}
-        <path d="M96 108 L104 108 L100 114 Z" fill="#f472b6" />
-        <path d="M100 114 Q100 120 90 121" stroke="#3b0764" strokeWidth="2" strokeLinecap="round" fill="none" />
-        <path d="M100 114 Q100 120 110 121" stroke="#3b0764" strokeWidth="2" strokeLinecap="round" fill="none" />
-
-        {/* Kumis */}
-        <path d="M40 100 L20 96" stroke="#e9d5ff" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M40 108 L18 108" stroke="#e9d5ff" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M160 100 L180 96" stroke="#e9d5ff" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M160 108 L182 108" stroke="#e9d5ff" strokeWidth="1.5" strokeLinecap="round" />
-
-        <defs>
-          <linearGradient id="gradKucing" x1="32" y1="32" x2="168" y2="148" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#c084fc" />
-            <stop offset="1" stopColor="#a21caf" />
-          </linearGradient>
-        </defs>
-      </svg>
     </div>
   );
 }
